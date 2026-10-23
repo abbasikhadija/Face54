@@ -82,6 +82,19 @@ test('all 48 editable slots reproduce the fixture exactly and continue to verifi
  await expect(page.getByRole('heading',{name:'Your solution is ready.',exact:true})).toBeVisible({timeout:90000});
  expect(workers).toHaveLength(1);
  await expect.poll(async()=> (await stored(page))?.facelets.join('')).toBe(state);
+ await page.getByRole('button',{name:'Start guided solving',exact:true}).click();
+ const canvas=page.getByRole('group',{name:'Interactive 3D cube'}),reference=Cube.fromString(state);
+ await expect(canvas).toHaveAttribute('data-rendered-state',state);
+ for(let step=0;step<22;step++){
+  const move=await page.locator('.current-turn code').innerText();reference.move(move);
+  await page.getByRole('button',{name:'Done — next move',exact:true}).click();
+  await expect(canvas).toHaveAttribute('data-rendered-state',reference.asString());
+ }
+ await expect(page.getByRole('heading',{name:'Every turn complete.',exact:true})).toBeVisible();
+ expect(reference.isSolved()).toBe(true);await expect(canvas).toHaveAttribute('data-rendered-state',solved);
+ await expect.poll(async()=> (await stored(page))?.facelets.join('')).toBe(state);
+ await page.getByRole('button',{name:'Solve another cube',exact:true}).click();
+ await expect.poll(async()=> (await stored(page))).toBe(null);
 });
 
 test('orientation for every face preserves all 54 reference stickers and can reopen',async({page})=>{

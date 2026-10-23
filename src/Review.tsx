@@ -6,9 +6,9 @@ import {colors} from './viewer';
 import {validateCube,type ValidationResult} from './validation';
 import {SolvePanel} from './SolvePanel';
 
-type Props={draft:InputDraft;notice:string;onEdit:(face:Face,indices:number[])=>void};
+type Props={draft:InputDraft;notice:string;onEdit:(face:Face,indices:number[])=>void;onBegin:(state:string,solution:string)=>void};
 const colorLetters:Record<Face,string>={U:'W',R:'R',F:'G',D:'Y',L:'O',B:'B'};
-export function Review({draft,notice,onEdit}:Props){
+export function Review({draft,notice,onEdit,onBegin}:Props){
  const [checked,setChecked]=useState<{key:string;result:ValidationResult}|null>(null);
  const summary=useRef<HTMLDivElement>(null);
  const key=JSON.stringify(draft.facelets);
@@ -44,7 +44,7 @@ export function Review({draft,notice,onEdit}:Props){
   </section>
   {!(result?.ok)&&<div className="review-check"><button className="button primary" type="button" onClick={check}>Check cube <span aria-hidden="true">→</span></button><p className="quiet-note">Checking never changes or erases your colors. Valid colors continue to local solving.</p></div>}
   {result&&<div ref={summary} tabIndex={-1} className={`validation-summary ${result.ok?'valid':'invalid'}`} aria-label="Cube check result">
-   {result.ok?<><div role="status"><h2>Your cube is physically possible.</h2><p>The entered colors describe a standard cube that can be solved by normal turns.</p></div><SolvePanel key={result.state} state={result.state}/></>:<div role="alert"><h2>{result.issues[0].code==='incomplete'?'Some colors are still missing.':'Recheck your colors.'}</h2>
+   {result.ok?<><div role="status"><h2>Your cube is physically possible.</h2><p>The entered colors describe a standard cube that can be solved by normal turns.</p></div><SolvePanel key={result.state} state={result.state} onBegin={onBegin}/></>:<div role="alert"><h2>{result.issues[0].code==='incomplete'?'Some colors are still missing.':'Recheck your colors.'}</h2>
     <ul>{result.issues.map((issue,i)=><li key={i} data-error-code={issue.code}>{issue.message}</li>)}</ul>
     {affected.size>0?<p>Outlined positions show missing entries or groups to recheck. They do not identify a particular mistaken sticker. Use Edit beside a face to return to those entries.</p>:<p>No individual sticker can be identified from this check. Use Edit beside each face to compare your entries with the cube.</p>}
    </div>}

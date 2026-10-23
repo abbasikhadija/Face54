@@ -1,21 +1,29 @@
 import {useEffect,useId,useRef,useState} from 'react';
 import {mountViewer} from './viewer';
 
-export function CubeView({state,caption}:{state:string;caption:string}){
+export function CubeView({state,caption,preview,onPreview,onVerified}:{state:string;caption:string;preview?:{move:string;token:number};onPreview?:(ok:boolean)=>void;onVerified?:(ok:boolean)=>void}){
  const host=useRef<HTMLDivElement>(null);
  const viewer=useRef<ReturnType<typeof mountViewer>|null>(null);
  const [error,setError]=useState('');
  const hintId=useId();
  useEffect(()=>{
   try{viewer.current=mountViewer(host.current!,{descriptionId:hintId});}
-  catch{setError('The 3D view needs WebGL2. Try a current browser with graphics acceleration enabled.');}
+  catch{setError('The 3D view needs WebGL2. Try a current browser with graphics acceleration enabled.');onVerified?.(false);}
   return ()=>{viewer.current?.dispose();viewer.current=null;};
  },[hintId]);
  useEffect(()=>{
   if(!viewer.current)return;
-  try{if(viewer.current.show(state)!==state)throw Error('Sticker mismatch');}
-  catch{setError('The cube view could not be verified. Reload the page to try again.');}
- },[state]);
+  try{if(viewer.current.show(state)!==state)throw Error('Sticker mismatch');onVerified?.(true);}
+  catch{setError('The cube view could not be verified. Reload the page to try again.');onVerified?.(false);}
+ },[state,onVerified]);
+ useEffect(()=>{
+  if(!preview||!viewer.current)return;
+  // Mobile confirmation controls can be below the fold: bring the actual preview into view.
+  host.current?.scrollIntoView({block:'center',behavior:'instant'});
+  try{viewer.current.preview(state,preview.move,ok=>{if(!ok){setError('The turn preview could not be verified. Return to colors and try again.');onVerified?.(false);}onPreview?.(ok);});}
+  catch{setError('The turn preview could not be verified. Return to colors and try again.');onVerified?.(false);onPreview?.(false);}
+  return ()=>viewer.current?.cancelPreview();
+ },[state,preview,onPreview,onVerified]);
  return <figure className="cube-figure">
   <div className="cube-stage"><div ref={host} className="cube-canvas"/>
    {error&&<p className="viewer-error" role="alert">{error}</p>}

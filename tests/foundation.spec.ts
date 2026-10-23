@@ -29,17 +29,16 @@ for(const viewport of [{name:'desktop',width:1440,height:900},{name:'mobile',wid
   await page.screenshot({path:`test-results/${info.project.name}-${viewport.name}-prepare.png`,fullPage:true});
   await page.goBack();await expect(page.getByRole('heading',{level:1})).toContainText('Your cube.');
   await page.getByRole('link',{name:'Try demo'}).click();
-  await expect(page.getByRole('status')).toContainText('Solution ready',{timeout:90000});
+  await expect(page.getByRole('heading',{name:'Your solution is ready.',exact:true})).toBeVisible({timeout:90000});
   expect(workers).toHaveLength(1);
-  const slider=page.getByRole('slider',{name:'Explore the solution'});
-  await expect(slider).toHaveValue('0');
-  await slider.focus();await slider.press('ArrowRight');await expect(slider).toHaveValue('1');
-  await page.getByRole('button',{name:'Show solved cube'}).click();
-  await expect(page.getByRole('status')).toHaveText('Demo solved. Every color is back in place.');
+  await page.getByRole('button',{name:'Start guided demo',exact:true}).click();
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Turn 1 of 22.');
+  await page.getByRole('button',{name:'Done — next move',exact:true}).click();
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Turn 2 of 22.');
   await noOverflow();
   await page.screenshot({path:`test-results/${info.project.name}-${viewport.name}-demo.png`,fullPage:true});
-  await page.getByRole('button',{name:'Reset demo'}).click();await expect(slider).toHaveValue('0');
-  await page.getByRole('link',{name:'Back to welcome'}).click();
+  await page.getByRole('button',{name:'Leave demo',exact:false}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Leave demo',exact:true}).click();
   await expect(page.getByRole('heading',{level:1})).toBeFocused();
   expect(errors).toEqual([]);
  });
@@ -89,7 +88,7 @@ test('WebGL unavailability provides readable recovery guidance',async({page})=>{
 test('failed worker gives an accessible error and a way back',async({page})=>{
  await page.route('**/solver.worker-*.js',route=>route.abort());
  await page.goto(url+'#demo');
- await expect(page.getByRole('status')).toContainText('The demo could not load',{timeout:20000});
+ await expect(page.getByRole('alert')).toContainText('The local solver could not load',{timeout:20000});
  await page.getByRole('link',{name:'Back to welcome'}).click();
  await expect(page.getByRole('heading',{level:1})).toContainText('Your cube.');
 });

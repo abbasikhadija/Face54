@@ -6,13 +6,14 @@ import Proof from './Proof';
 import {InputEditor} from './InputEditor';
 import {useDraft} from './useDraft';
 import {Review} from './Review';
-import {createSolverClient} from './solverClient';
+import {SolvePanel} from './SolvePanel';
+import {GuidedPlayback,type PlaybackSession} from './GuidedPlayback';
 import './styles.css';
 
 const initial=apply(solved,scramble);
-type Screen='welcome'|'prepare'|'demo'|'input'|'review';
+type Screen='welcome'|'prepare'|'demo'|'input'|'review'|'play';
 function currentScreen():Screen {
- return location.hash==='#prepare'?'prepare':location.hash==='#demo'?'demo':location.hash==='#input'?'input':location.hash==='#review'?'review':'welcome';
+ return location.hash==='#play'?'play':location.hash==='#prepare'?'prepare':location.hash==='#demo'?'demo':location.hash==='#input'?'input':location.hash==='#review'?'review':'welcome';
 }
 function CubeMark(){return <svg viewBox="0 0 28 30" fill="none" aria-hidden="true"><path d="m14 2 12 7v13l-12 7-12-7V9L14 2Z M2 9l12 7 12-7M14 16v13M8 5.5l12 7v13M20 5.5l-12 7v13M2 15.5l12 7 12-7" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>;}
 function Arrow(){return <span aria-hidden="true">↗</span>;}
@@ -40,41 +41,22 @@ function Prepare(){return <section className="hero prepare" aria-labelledby="pag
  </div><CubeView state={solved} caption="Starting view · white above, green in front"/>
  </section>;}
 
-function Demo(){
- const [result,setResult]=useState<{solution:string}|null>(null);
- const [error,setError]=useState(false);
- const [step,setStep]=useState(0);
- useEffect(()=>{
-  const client=createSolverClient(status=>{
-   if(status.phase==='ready')setResult(status);
-   else if(status.phase==='error')setError(true);
-  });
-  client.start(initial);
-  return ()=>client.dispose();
- },[]);
- const moves=result?.solution.split(/\s+/).filter(Boolean)??[];
- const state=apply(initial,moves.slice(0,step).join(' '));
+function Demo({onBegin}:{onBegin:(state:string,solution:string)=>void}){
  return <section className="hero demo" aria-labelledby="page-title">
-  <div className="hero-copy"><a className="back-link" href="#">← Back to welcome</a><p className="eyebrow">TAKE A LOOK AROUND</p>
+  <div className="hero-copy"><a className="back-link" href="#">← Back to welcome</a><p className="eyebrow">TRY ONE TURN AT A TIME</p>
    <h1 id="page-title" tabIndex={-1}>A scrambled cube.<br/><em>A way through.</em></h1>
-   <p className="intro">Explore a real solution to this example cube. Move the slider to see how each turn changes it.</p>
-   <div className="demo-controls">
-    <p className="demo-status" role="status">{error?'The demo could not load. Return to welcome and try again.':!result?'Finding a solution…':step===moves.length?'Demo solved. Every color is back in place.':`Solution ready · ${moves.length} moves`}</p>
-    {result&&!error&&<>
-     <div className="range-label"><label htmlFor="demo-position">Explore the solution</label><span>{step} / {moves.length}</span></div>
-     <input id="demo-position" type="range" min={0} max={moves.length} value={step} aria-valuetext={step===0?'Starting scramble':`After move ${step} of ${moves.length}: ${moves[step-1]}`} onChange={e=>setStep(Number(e.target.value))}/>
-     <p className="move-label">{step===0?'Starting scramble':<>Last turn <code>{moves[step-1]}</code></>}</p>
-     <div className="actions"><button type="button" className="button primary" onClick={()=>setStep(step===moves.length?0:moves.length)}>{step===moves.length?'Reset demo':'Show solved cube'} <span aria-hidden="true">→</span></button></div>
-     <p className="quiet-note">This is an example cube. Your own cube will have a different solution.</p>
-    </>}
-   </div>
-  </div><CubeView state={state} caption={step===moves.length&&result?'Demo cube · solved':'Demo cube · explore from any angle'}/>
+   <p className="intro">Try the complete guided journey with this example cube. Every turn stays under your control.</p>
+   <SolvePanel state={initial} demo onBegin={onBegin}/>
+  </div><CubeView state={initial} caption="Example cube · white above, green in front"/>
  </section>;
 }
-
 function App(){
  const [screen,setScreen]=useState<Screen>(currentScreen);
  const input=useDraft();
+ const [session,setSession]=useState<PlaybackSession|null>(null);
+ function begin(state:string,solution:string,demo=false){setSession({state,solution,demo});location.hash='#play';}
+ function leave(){const demo=session?.demo;setSession(null);location.hash=demo?'#':'#input';}
+ function newCube(){if(!session?.demo)input.reset();setSession(null);location.hash='#prepare';}
  const [correction,setCorrection]=useState<{face:Face;indices:number[];key:string}|null>(null);
  const highlighted=correction?.key===JSON.stringify(input.draft.facelets)?correction:null;
  const correctionPosition=highlighted?.face===input.draft.face&&highlighted.indices.length>0?highlighted.indices[0]%9:undefined;
@@ -82,16 +64,16 @@ function App(){
   input.setDraft({...input.draft,face});setCorrection({face,indices,key:JSON.stringify(input.draft.facelets)});location.hash='#input';
  }
  const firstRender=useRef(true);
- useEffect(()=>{const navigate=()=>setScreen(currentScreen());window.addEventListener('hashchange',navigate);return ()=>window.removeEventListener('hashchange',navigate);},[]);
+ useEffect(()=>{const navigate=()=>{const next=currentScreen();if(next!=='play')setSession(null);setScreen(next);};window.addEventListener('hashchange',navigate);return ()=>window.removeEventListener('hashchange',navigate);},[]);
  useEffect(()=>{
-  document.title=screen==='welcome'?'Cube Solver — One turn at a time':`${screen==='prepare'?'Prepare your cube':screen==='input'?'Enter cube colors':screen==='review'?'Review your cube':'Try the demo'} — Cube Solver`;
+  document.title=screen==='welcome'?'Cube Solver — One turn at a time':`${screen==='prepare'?'Prepare your cube':screen==='input'?'Enter cube colors':screen==='review'?'Review your cube':screen==='play'?'Follow each turn':'Try the demo'} — Cube Solver`;
   if(!firstRender.current||location.hash)document.getElementById('page-title')?.focus();
   firstRender.current=false;
  },[screen]);
  return <div className="app-shell">
   <a href="#main" className="skip-link" onClick={e=>{e.preventDefault();document.getElementById('main')?.focus();}}>Skip to content</a>
   <header className="site-header"><a href="#" className="wordmark" aria-label="Cube Solver home"><CubeMark/><span>Cube Solver<span className="wordmark-dot">.</span></span></a><span className="header-note">A little clarity, one turn at a time.</span></header>
-  <main id="main" tabIndex={-1}>{screen==='welcome'?<Welcome/>:screen==='prepare'?<Prepare/>:screen==='input'?<InputEditor draft={input.draft} setDraft={input.setDraft} notice={input.notice} onReset={input.reset} highlighted={highlighted?.indices} initialPosition={correctionPosition}/>:screen==='review'?<Review draft={input.draft} notice={input.notice} onEdit={editFace}/>:<Demo/>}</main>
+  <main id="main" tabIndex={-1}>{screen==='welcome'?<Welcome/>:screen==='prepare'?<Prepare/>:screen==='input'?<InputEditor draft={input.draft} setDraft={input.setDraft} notice={input.notice} onReset={input.reset} highlighted={highlighted?.indices} initialPosition={correctionPosition}/>:screen==='review'?<Review draft={input.draft} notice={input.notice} onEdit={editFace} onBegin={(state,solution)=>begin(state,solution)}/>:screen==='play'?(session?<GuidedPlayback session={session} onExit={leave} onNew={newCube}/>:<section className="input-screen"><h1 id="page-title" tabIndex={-1}>Recheck your current cube.</h1><p>Solution progress is not saved. If you turned your physical cube, re-enter its current colors before checking again.</p><a className="button primary" href="#input">Return to colors</a></section>):<Demo onBegin={(state,solution)=>begin(state,solution,true)}/>}</main>
   <footer className="site-footer"><span>Made for the cube in your hands.</span><span><span className="local-dot" aria-hidden="true"/> Solving stays on your device.</span></footer>
  </div>;
 }

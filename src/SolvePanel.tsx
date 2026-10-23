@@ -11,7 +11,7 @@ const errors:Record<SolveFailure,string>={
  worker:'The local solver could not load or stopped unexpectedly. Your colors are safe; try again.',
  timeout:'The solver took too long and was stopped. Your colors are safe; try again.',
 };
-export function SolvePanel({state}:{state:string}){
+export function SolvePanel({state,onBegin,demo=false}:{state:string;onBegin:(state:string,solution:string)=>void;demo?:boolean}){
  const [status,setStatus]=useState<SolveStatus>({phase:'preparing'});
  const client=useRef<ReturnType<typeof createSolverClient>|null>(null);
  const heading=useRef<HTMLHeadingElement>(null);
@@ -27,7 +27,7 @@ export function SolvePanel({state}:{state:string}){
   {status.phase==='error'&&<p role="alert">{errors[status.code]}</p>}
   {status.phase==='cancelled'&&<p role="status">Your colors are unchanged. You can retry or edit a face.</p>}
   {(status.phase==='error'||status.phase==='cancelled')&&<button className="button primary" type="button" onClick={()=>client.current?.start(state)}>Try again</button>}
-  {status.phase==='ready'&&<div role="status"><p>{status.solution?`Verified ${status.solution.trim().split(/\s+/).length} moves against your entered colors.`:'No moves are needed for these entered colors.'}</p><p>{status.solution?'Guided physical turns are the next development milestone. Keep your cube as entered; no move has been recorded or performed.':'Compare all six faces with your physical cube to confirm they match.'}</p></div>}
+  {status.phase==='ready'&&<><div role="status"><p>{status.solution?`Verified ${status.solution.trim().split(/\s+/).length} moves against ${demo?'the example cube':'your entered colors'}.`:'No moves are needed for these entered colors.'}</p><p>{demo?'Follow the example one turn at a time.':status.solution?'Hold white on top and green in front. Compare your cube with the starting 3D state before making a turn.':'Compare all six faces with your physical cube to confirm they match.'}</p></div><button className="button primary" type="button" onClick={()=>onBegin(status.state,status.solution)}>{status.solution?(demo?'Start guided demo':'Start guided solving'):'View solved cube'} <span aria-hidden="true">→</span></button></>}
   <p className="quiet-note">Editing or leaving this review discards the solution. Your entered colors stay saved when browser storage is available.</p>
  </section>;
 }

@@ -1,6 +1,6 @@
 import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {stickers,serialize,type Sticker,type V,type Face} from './cube';
+import {stickers,serialize,apply,faces,frames,dot,type Sticker,type V,type Face} from './cube';
 import {orientationPose} from './orientation';
 export const colors:Record<string,string>={U:'#ffffff',R:'#d52b1e',F:'#009b48',D:'#ffd500',L:'#ff5800',B:'#0046ad'};
 export function makeCube(state:string){
@@ -10,6 +10,13 @@ export function makeCube(state:string){
   mesh.position.set(...s.p.map((v,i)=>v+s.n[i]*.51) as V);
   mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),new T.Vector3(...s.n));
   group.add(mesh);
+ }
+ return group;
+}
+export function makeCore(){
+ const group=new T.Group(),geometry=new T.BoxGeometry(.98,.98,.98),material=new T.MeshBasicMaterial({color:'#11151b'});
+ for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+  const piece=new T.Mesh(geometry,material);piece.position.set(x,y,z);group.add(piece);
  }
  return group;
 }
@@ -26,6 +33,20 @@ export function readCube(group:T.Group){
   return {color,n:n.toArray().map(Math.round) as V,p:p.toArray().map((v,i)=>Math.round(v-n.getComponent(i)*.51)) as V};
  });
  return serialize(items);
+}
+// Absolute transforms from the confirmed state; camera orientation is irrelevant.
+export function layerPreview(group:T.Group,state:string,move:string,body?:T.Group){
+ if(!/^[URFDLB](2|')?$/.test(move))throw Error('Unsupported turn');
+ const n=frames[faces.indexOf(move[0] as Face)].n;
+ const selected=stickers(state).flatMap((s,i)=>dot(s.p,n)===1?[group.children[i]]:[]);
+ if(body)selected.push(...body.children.filter(piece=>Math.abs(piece.position.dot(new T.Vector3(...n))-1)<.001));
+ const originals=selected.map(mesh=>({mesh,position:mesh.position.clone(),rotation:mesh.quaternion.clone()}));
+ const angle=(move.endsWith('2')?2:move.endsWith("'")?-1:1)*-Math.PI/2;
+ return (progress:number)=>{
+  const q=new T.Quaternion().setFromAxisAngle(new T.Vector3(...n),angle*progress);
+  for(const {mesh,position,rotation} of originals){mesh.position.copy(position).applyQuaternion(q);mesh.quaternion.copy(q).multiply(rotation);}
+  group.updateMatrixWorld(true);
+ };
 }
 export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descriptionId?:string;interactive?:boolean}={}){
  const diagnostic=options.diagnostic??false;
@@ -49,10 +70,14 @@ export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descri
  controls.enabled=interactive;
  controls.rotateSpeed=.65;
  controls.saveState();
- const core=new T.Mesh(new T.BoxGeometry(3,3,3),new T.MeshBasicMaterial({color:'#11151b'}));
+ // Individual bodies turn with their stickers, avoiding floating planes or a static slab.
+ const core=makeCore();
  scene.add(core);
  let cube:T.Group|undefined;
  let animation=0;
+ let previewTimer:ReturnType<typeof setTimeout>|undefined;
+ let restorePreview:(()=>void)|undefined;
+ function cancelPreview(){cancelAnimationFrame(animation);clearTimeout(previewTimer);restorePreview?.();restorePreview=undefined;}
  const render=()=>renderer.render(scene,camera);
  controls.addEventListener('change',render);
  const resize=()=>{
@@ -76,10 +101,32 @@ export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descri
  const disposeCube=()=>cube?.children.forEach(c=>{const m=c as T.Mesh<T.PlaneGeometry,T.MeshBasicMaterial>;m.geometry.dispose();m.material.dispose();});
  return {
   show(state:string){
+   cancelPreview();
    if(cube){scene.remove(cube);disposeCube();}
    cube=makeCube(state);scene.add(cube);renderer.render(scene,camera);
-   return readCube(cube);
+   const actual=readCube(cube);canvas.dataset.renderedState=actual;return actual;
   },
+  preview(state:string,move:string,onSettled:(ok:boolean)=>void){
+   cancelPreview();
+   if(!cube||readCube(cube)!==state)throw Error('Preview starting state mismatch');
+   const rotate=layerPreview(cube,state,move,core),expected=apply(state,move);
+   restorePreview=()=>{rotate(0);render();};
+   canvas.dataset.preview='moving';
+   const start=performance.now(),reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+   const tick=(now:number)=>{
+    const t=reduced?1:Math.min((now-start)/700,1);rotate(t*t*(3-2*t));render();
+    if(t<1){animation=requestAnimationFrame(tick);return;}
+    let ok=false;
+    try{const actual=readCube(cube!);canvas.dataset.previewEndState=actual;ok=actual===expected;}catch{/* Never confirm an unverified endpoint. */}
+    previewTimer=setTimeout(()=>{
+     cancelPreview();
+     try{ok=ok&&readCube(cube!)===state;}catch{ok=false;}
+     canvas.dataset.preview=ok?'ready':'failed';onSettled(ok);
+    },reduced?600:400);
+   };
+   animation=requestAnimationFrame(tick);
+  },
+  cancelPreview,
   resetView(){controls.reset();render();},
   orientFace(face:Face,onSettled:(referenceState:string)=>void){
    cancelAnimationFrame(animation);
@@ -101,6 +148,6 @@ export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descri
    };
    animation=requestAnimationFrame(tick);
   },
-  dispose(){cancelAnimationFrame(animation);observer.disconnect();canvas.removeEventListener('keydown',onKey);controls.dispose();disposeCube();core.geometry.dispose();core.material.dispose();renderer.dispose();canvas.remove();},
+  dispose(){cancelPreview();observer.disconnect();canvas.removeEventListener('keydown',onKey);controls.dispose();disposeCube();const body=core.children[0] as T.Mesh<T.BoxGeometry,T.MeshBasicMaterial>;body.geometry.dispose();body.material.dispose();renderer.dispose();canvas.remove();},
  };
 }

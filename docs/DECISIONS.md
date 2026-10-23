@@ -1,5 +1,21 @@
 # Engineering decisions
 
+## M5 — Guided physical solving (2026-10-23)
+
+**Problem:** M4 computed verified moves but had no physical turn controller. A moving preview must never count as a completed turn, and camera orbit must never redefine notation.
+
+**Controller:** Add a pure verified playback plan with one canonical state per solution boundary and small explicit forward/undo transitions. GuidedPlayback owns a confirmed index plus a separate preview token/busy flag. Done advances once; Previous enters undo instructions without changing the index; I undid this turn commits exactly one reverse step; Keep current step cancels undo. Completion can also be undone. Reject invalid plans rather than displaying unrelated moves. No generic state framework or dependency added.
+
+**Rendering:** Keep established canonical transforms and mesh readback. Preview applies an absolute axis-angle quaternion to only the current layer's actual sticker meshes and nine body pieces; it uses the fixed outward face normal, not the camera. Verify the endpoint against independent apply(), then restore and verify the original confirmed state. Add individual black body pieces because visual inspection showed that the original stationary cube body left turning stickers looking detached. Repeated previews start from captured original transforms, preventing drift. Show/reset/dispose cancels animation and its dwell timer. No idle animation loop.
+
+**Motion/feedback:** Requested turn duration is 700 ms with a 400 ms endpoint dwell, then a reset; reduced motion skips interpolation and briefly shows the endpoint for 600 ms. These are configured durations, not measured frame-rate guarantees. Preview locks confirmation and undo while active. A verification/WebGL failure blocks turn confirmation. Mobile previews scroll the actual cube into view because controls may be below the fold. The view caption remains the confirmed state; preview status explicitly says progress is unchanged.
+
+**Notation:** All 18 outer turns get face color/name, quarter clockwise/counterclockwise or half turn, and an explicit outside-face viewpoint. White up/green front remain the physical hold. Checked [WCA Article 12](https://www.worldcubeassociation.org/regulations/#article-12-notation), [Three.js quaternion documentation](https://threejs.org/docs/pages/Quaternion.html), and installed Three.js source for normalized-axis/radians/multiplication behavior. Automated cubie/mesh agreement, not appearance alone, verifies our direction mapping.
+
+**Flow/persistence:** Start from an explicit button after verified solving, so users can prepare their hold. App owns a memory-only session at #play. Real and demo journeys use the same solver and controller; replace the old product demo seek/Show solved shortcut with explicit turns. M0 diagnostic seeking remains for technical verification. Completion shows only solved state, move count and Solve another cube. That action clears the completed real draft; demo completion preserves unrelated input. Alternative: persist progress or continually overwrite input with confirmed states. Rejected because the specification persists minimal unfinished input, and software cannot know physical moves occurred. Leaving warns that current physical colors must be re-entered; refresh/direct #play cannot resurrect a solution. Browser Back/wordmark discard the session, as stated on screen.
+
+**Verification:** All 18 mesh turns and body restoration, 100 deterministic legal plans checked against cubejs at every forward/reverse boundary, explicit undo guards and solved/invalid plans. Browser tests check exact initial/confirmed meshes, all 18 animated endpoints and restoration, repeated/reduced-motion previews, full real demo and full sticker entry through completion, camera reset/notation, keyboard/native emulated touch, exit/refresh and unavailable WebGL. Real physical cube trials remain explicitly pending. Final counts, screenshots and unchanged release concerns are in M5_REPORT.md.
+
 ## M4 — Production solving pipeline (2026-10-23)
 
 **Problem:** M3 validated input but stopped before computing a solution. The original one-shot worker had no request identity, runtime protocol checks, cancellation/retry or protection against a returned solution belonging to another input.
