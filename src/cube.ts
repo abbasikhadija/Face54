@@ -1,5 +1,6 @@
 export type V = [number, number, number];
 export const faces = ['U','R','F','D','L','B'] as const;
+export type Face = typeof faces[number];
 export const solved = faces.map(f => f.repeat(9)).join('');
 // Right-handed world: x right, y up, z front. Each grid viewed from outside.
 export const frames: {n:V; up:V; right:V}[] = [

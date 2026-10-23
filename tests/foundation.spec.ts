@@ -24,7 +24,7 @@ for(const viewport of [{name:'desktop',width:1440,height:900},{name:'mobile',wid
   await page.getByRole('link',{name:'Solve my cube'}).click();
   await expect(page.getByRole('heading',{level:1})).toContainText('Get to know');
   await expect(page.getByRole('heading',{level:1})).toBeFocused();
-  await expect(page.getByText('Face-by-face color entry is coming',{exact:false})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Enter cube colors'})).toBeVisible();
   await noOverflow();
   await page.screenshot({path:`test-results/${info.project.name}-${viewport.name}-prepare.png`,fullPage:true});
   await page.goBack();await expect(page.getByRole('heading',{level:1})).toContainText('Your cube.');
@@ -48,6 +48,7 @@ for(const viewport of [{name:'desktop',width:1440,height:900},{name:'mobile',wid
 test('keyboard navigation, reduced motion, drag interaction and resize',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto(url);
+ await expect(page.getByRole('heading',{level:1})).toContainText('Your cube.');
  await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'Skip to content'})).toBeFocused();
  await page.keyboard.press('Enter');await expect(page.locator('main')).toBeFocused();
  await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'Solve my cube'})).toBeFocused();
@@ -93,12 +94,19 @@ test('failed worker gives an accessible error and a way back',async({page})=>{
  await expect(page.getByRole('heading',{level:1})).toContainText('Your cube.');
 });
 
-test('touch drag rotates the camera and reset restores the view',async({browser},info)=>{
- const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+test('touch drag, native touch reset, and keyboard reset preserve the camera state',async({browser},info)=>{
+ // Test native taps before raw CDP dragging; raw injection does not reliably
+ // synthesize compatibility clicks for a following gesture in these browsers.
+ const context=await browser.newContext({viewport:{width:390,height:1000},isMobile:true,hasTouch:true,deviceScaleFactor:1});
  try{
   const page=await context.newPage();await page.goto(url);
   const canvas=page.getByRole('group',{name:'Interactive 3D cube'});
   const before=await canvas.screenshot({path:`test-results/${info.project.name}-touch-before.png`});
+  const reset=page.getByRole('button',{name:'Reset view'});
+  await canvas.focus();await canvas.press('ArrowRight');
+  expect((await canvas.screenshot()).equals(before)).toBe(false);
+  await reset.tap();
+  expect((await canvas.screenshot()).equals(before)).toBe(true);
   const box=(await canvas.boundingBox())!;
   const session=await context.newCDPSession(page);
   const x=box.x+box.width/2,y=box.y+box.height/2;
@@ -106,17 +114,7 @@ test('touch drag rotates the camera and reset restores the view',async({browser}
   for(let i=1;i<=6;i++)await session.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+i*10,y:y+i*3}]});
   await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   expect((await canvas.screenshot()).equals(before)).toBe(false);
-  const reset=page.getByRole('button',{name:'Reset view'});
-  // Keep both gestures on the same input session and wait for click delivery.
-  await reset.evaluate(el=>el.addEventListener('click',()=>{(el as HTMLElement).dataset.tapped='true';},{once:true}));
-  await reset.evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));
-  // Let the compositor finish the scroll before starting a new touch gesture.
-  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
-  const target=(await reset.boundingBox())!;
-  await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:target.x+target.width/2,y:target.y+target.height/2}]});
-  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
-  await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await expect(reset).toHaveAttribute('data-tapped','true');
+  await reset.focus();await reset.press('Enter');
   expect((await canvas.screenshot({path:`test-results/${info.project.name}-touch-after.png`})).equals(before)).toBe(true);
  }finally{await context.close();}
 });
