@@ -1,5 +1,9 @@
 # Current context
 
+## Latest Pages diagnosis (2026-10-23)
+
+Owner enabled Pages after the M6 preparation commit (41fe503). Quality push workflow succeeded on GitHub. The default `pages build and deployment` run 39957674460 also succeeded, but used **Build with Jekyll**, publishing raw source instead of Vite dist. Public URL now returns HTTP 200 with source index.html (`/src/main.tsx`), while compiled assets/notices return 404: this is not a working application deployment. Select Pages source **GitHub Actions** and manually run the custom Pages workflow to publish dist. Local workflow renamed **Publish approved build to Pages** and approval description corrected to approve publication without asserting physical trials. Physical trials/final acceptance remain pending independently. No agent commit/push/dispatch/settings change/deployment. Commit/push the wording fix before following the new workflow name. Prior 404 observations below are historical.
+
 ## Current milestone
 
 M6 — Final Quality and GitHub Pages Release INCOMPLETE (2026-10-23). Local release preparation and automated verification pass; physical cube acceptance and public release verification remain pending. M0–M5 remain complete for their recorded automated acceptance. STOPPED for user review. No commit, push, workflow dispatch, Pages settings change or deployment performed.

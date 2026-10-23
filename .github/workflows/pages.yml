@@ -1,9 +1,9 @@
-name: Publish reviewed release to Pages
+name: Publish approved build to Pages
 on:
   workflow_dispatch:
     inputs:
       release_approved:
-        description: 'Physical trials recorded and this release approved for publication'
+        description: 'Approve publishing this build (physical trials and final acceptance remain separately tracked)'
         type: boolean
         required: true
         default: false
