@@ -49,6 +49,9 @@ test('320px reflow, 200% zoom and reduced-motion preview retain usable controls'
  await page.getByRole('button',{name:'Preview this turn',exact:true}).click();await expect(page.locator('canvas')).toHaveAttribute('data-preview','ready');await expect(page.getByText('0 of 1 moves confirmed',{exact:true})).toBeVisible();
  await page.screenshot({path:`test-results/${info.project.name}-320-guidance.png`,fullPage:true});
  await page.setViewportSize({width:1280,height:1000});await page.evaluate(()=>{document.documentElement.style.zoom='2';});
+ // ResizeObserver updates the drawing buffer asynchronously after layout/zoom.
+ // Wait for the canvas to fit its host, then retain the actual overflow check.
+ await expect.poll(()=>page.locator('canvas').evaluate(canvas=>Math.abs(Number.parseFloat(canvas.style.width)-canvas.parentElement!.clientWidth)<=1)).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await expect(page.getByRole('button',{name:'Done — next move',exact:true})).toBeEnabled();await accessible(page);
  await page.screenshot({path:`test-results/${info.project.name}-zoom-guidance.png`,fullPage:true});
 });

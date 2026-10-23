@@ -48,7 +48,7 @@ h1 em { font-style: normal; color: var(--accent); }
 .cube-figure { margin: 0; width: 100%; min-width: 0; align-self: center; }
 .cube-stage { position: relative; width: 100%; aspect-ratio: 1.05; }
 .cube-canvas { width: 100%; height: 100%; position: absolute; inset: 0; }
-.cube-canvas canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; border-radius: 6px; }
+.cube-canvas canvas { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; cursor: grab; touch-action: none; border-radius: 6px; }
 .cube-canvas canvas:active { cursor: grabbing; }
 figcaption { text-align: center; display: flex; flex-direction: column; align-items: center; }
 .cube-caption { font-size: 12px; color: var(--text); }

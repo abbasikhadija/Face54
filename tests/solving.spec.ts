@@ -83,7 +83,8 @@ test('failed worker load preserves colors and retry recovers',async({page})=>{
 test('leaving during computation terminates and returning cannot display old solution',async({page})=>{
  await observe(page);await seed(page,apply(solved,scramble));await check(page);
  await page.getByRole('link',{name:'Back to colors',exact:true}).click();
- expect(await page.evaluate(()=>(window as any).terminated)).toBe(1);
+ // Hash navigation and React effect cleanup finish asynchronously after the click.
+ await expect.poll(()=>page.evaluate(()=>(window as any).terminated)).toBe(1);
  await page.getByRole('link',{name:'Review cube',exact:true}).click();await expect(page.getByRole('region',{name:'Local solution',exact:true})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Check cube',exact:true})).toBeVisible();
 });
