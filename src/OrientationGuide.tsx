@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {solved,type Face} from './cube';
 import {faceInfo} from './orientation';
-import {mountViewer} from './viewer';
+import type {mountViewer} from './viewer';
 
 export function OrientationGuide({face,onClose}:{face:Face;onClose:()=>void}){
  const host=useRef<HTMLDivElement>(null);
@@ -11,12 +11,13 @@ export function OrientationGuide({face,onClose}:{face:Face;onClose:()=>void}){
  useEffect(()=>{
   setSettled(false);setError(false);
   let viewer:ReturnType<typeof mountViewer>|undefined;
-  try{
-   viewer=mountViewer(host.current!,{interactive:false});
+  let live=true;
+  void import('./viewer').then(({mountViewer})=>{if(!live)return;try{
+   viewer=mountViewer(host.current!,{interactive:false,onError:()=>{setError(true);setSettled(true);}});
    if(viewer.show(solved)!==solved)throw Error('Reference state mismatch');
    viewer.orientFace(face,referenceState=>{if(referenceState!==solved)setError(true);setSettled(true);});
-  }catch{setError(true);setSettled(true);}
-  return ()=>viewer?.dispose();
+  }catch{setError(true);setSettled(true);}}).catch(()=>{if(live){setError(true);setSettled(true);}});
+  return ()=>{live=false;viewer?.dispose();};
  },[face]);
  return <aside className={`orientation-guide ${settled?'settled':''}`} aria-label="Face orientation guide">
   <div><p className="eyebrow">HOLD YOUR CUBE LIKE THIS</p><h2 id="orientation-title" tabIndex={-1}>{info.color} facing you</h2></div>

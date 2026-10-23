@@ -1,21 +1,26 @@
 # Cube Solver
 
-A browser-based guide for a standard 3×3 cube. Guided entry, physical validation and verified local worker solving now lead to **M5 manual turn-by-turn guidance**, previews, explicit undo and completion. Real physical-cube acceptance remains pending; release/deployment work is M6.
+A browser-based guide for a standard 3×3 cube: guided entry, physical validation, verified local worker solving and manual turn-by-turn guidance. **M6 release preparation is implemented locally; final acceptance is incomplete.** Physical cube trials and public deployment verification remain pending.
 
 ## Run
 
-Use Node 22.14 or a compatible version satisfying Vite's engine range (20.19+ or 22.12+).
+Use Node 22.12+ (verified with 22.14.0). The accessibility tooling requires this minimum.
 
 ```sh
 npm ci
 npm run dev
+npm run lint
+npm run typecheck
 npm test
+npm audit --audit-level=low
 npm run build
 npm run test:browser
 npm run preview
 ```
 
-The browser suite uses locally installed Chrome and Edge. `npm run build` checks TypeScript and builds with `/Face54/` as a deliberately non-root test path. Production preview: http://localhost:4173/Face54/. This is a local address, not a deployed site. The actual repository/Pages path must be established in M6.
+The browser suite uses locally installed Chrome and Edge. `npm run build` checks vendored source integrity, generates runtime license notices, checks TypeScript and builds with `/Face54/`. The configured repository is `abbasikhadija/Face54`; the project now has its own Git root. Dev/production preview use the same base. Production preview: http://localhost:4173/Face54/.
+
+The intended public URL is https://abbasikhadija.github.io/Face54/ — it returned **404 on 2026-10-23**. This repository does not claim a live deployment.
 
 ## Try it
 
@@ -40,13 +45,25 @@ The browser suite uses locally installed Chrome and Edge. `npm run build` checks
 
 `src/solver.ts` wraps the existing cubejs solver. `src/solverProtocol.ts` defines typed requests/progress/results/errors, runtime checks and independent move verification. `src/solver.worker.ts` validates again and performs preparation/search off the main thread. `src/solverClient.ts` binds unique request IDs to exact input snapshots, verifies returned moves again, handles crashes/message failures and stops work on cancellation, disposal or a 60-second timeout. Completed/failed workers are released; retries rebuild tables. The demo and M0 proof use this same client. `src/viewer.ts` owns Three.js and exact mesh readback; rendering and canonical mathematics remain separate.
 
+Domain colors live in `src/colors.ts`. The WebGL renderer and technical proof load on demand; opening review/input without a 3D reference does not eagerly fetch the renderer. Graphics loss stops previews and blocks physical confirmation; a renderer-download failure gives recovery guidance while color entry stays usable.
+
 `src/playback.ts` verifies a plan, derives canonical boundaries, maps all 18 turns to plain-English outside-face directions and implements explicit forward/undo transitions without renderer dependencies. `src/GuidedPlayback.tsx` owns transient confirmed progress and the separate preview lifecycle. Actual sticker meshes and their body pieces turn in the viewer; endpoint readback must match the mathematical move, then return exactly to the confirmed state. Work runs only during requested previews or camera interaction.
 
-Vitest cross-checks solver/renderer and typed pipeline cases, input/orientation/persistence, physical validation, 100 deterministic playback plans, every turn's actual mesh endpoint/restoration and body transforms. Playwright covers production workers/WebGL, all 48 editable slots through confirmed completion, complete guided demo, all 18 animated previews, explicit undo, camera/notation independence, reduced motion, keyboard/native emulated touch, navigation/refresh, worker recovery, desktop/mobile and existing input/validation regressions.
+Vitest cross-checks solver/renderer and typed pipeline cases, input/orientation/persistence, physical validation, 100 deterministic playback plans, every turn's actual mesh endpoint/restoration and body transforms. Playwright covers production workers/WebGL, all 48 editable slots through confirmed completion, complete guided demo, all 18 animated previews, explicit undo, camera/notation independence, reduced motion, keyboard/native emulated touch, navigation/refresh, worker recovery, desktop/mobile and existing input/validation regressions. M6 adds automated WCAG A/AA axe checks across task states/dialogs, 320 px reflow, simulated 200% CSS zoom, renderer chunk failure, graphics-context loss, base-path/notices loading and absence of external service requests. These checks do not constitute a full screen-reader audit.
 
 Entered colors remain unchecked until Check cube succeeds. Counts alone or library parsing are not proof of physical validity. A verified solution and user confirmation cannot prove that input matches the physical cube or that a physical turn occurred. Real-cube trials, Firefox/Safari, real mobile hardware and full assistive-technology checks remain pending.
 
-WebGL2 is required for 3D. Text orientation instructions and editing remain available if the reference cannot initialize. The legacy cubejs dependency tree has 42 audit findings in the M0 snapshot, including 3 critical; these remain a release risk. The main bundle still triggers Vite's size warning. No backend, tracking, remote fonts, accounts or public deployment have been introduced.
+WebGL2 is required for 3D. Text orientation instructions and editing remain available if the reference cannot initialize. No backend, tracking, remote fonts or accounts are used.
+
+## Dependencies and release
+
+The old cubejs package installed an unused npm 6 CLI tree with 42 findings (3 critical). `vendor/cubejs` now packages only the unchanged cubejs 1.3.2 runtime and MIT license. All four files were compared with a freshly downloaded official registry tarball; recorded SHA-256 checks run on every build. The existing guarded module-worker compatibility transform remains. This preserves the solver algorithm/API while removing the vulnerable CLI tree. Future upstream security/source/license review is still required; local vendored packages are not automatically upgraded by npm audit.
+
+Fresh M6 npm audit reports zero known vulnerabilities in the resolved dependency tree; before/after snapshots are in docs/npm-audit-m6-before.json and docs/npm-audit-m6-after.json. Direct versions and the lockfile are pinned. Build-generated [third-party runtime notices](public/THIRD_PARTY_NOTICES.txt) ship with the site and preserve all five MIT runtime package notices. No application-wide license was chosen automatically.
+
+Initial JavaScript decreased from 812.39 kB / 218.55 kB gzip to about 263.56 kB / 82.13 kB gzip; the on-demand renderer is 549.61 kB / 136.83 kB gzip and retains Vite's >500 kB warning. Total renderer cost still exists when 3D is requested. Cold solver initialization still takes seconds. These are local observations, not hardware-independent promises.
+
+`.github/workflows/quality.yml` prepares lint/type/unit/audit/build and Chrome/Edge production tests for PRs and main pushes. `.github/workflows/pages.yml` publishes only through an explicitly approved manual dispatch from main, after repeating those checks. These workflows have not run on GitHub yet. Before publishing: record both physical trials in [PHYSICAL_ACCEPTANCE.md](docs/PHYSICAL_ACCEPTANCE.md), review this release, enable **Settings → Pages → GitHub Actions**, and explicitly authorize publication. The manual approval input asserts those prerequisites; do not select it while trials are pending. A public browser check must then verify workers, renderer, demo and manual-input journey at the actual Pages URL before M6 can be declared complete. Nothing was committed, pushed, dispatched or deployed by this session.
 
 ## Screenshots
 
@@ -54,4 +71,4 @@ WebGL2 is required for 3D. Text orientation instructions and editing remain avai
 
 ![M5 guided solving on mobile](docs/screenshots/m5-guided-mobile.png)
 
-See docs/DECISIONS.md, docs/M0_REPORT.md through docs/M5_REPORT.md and context.md for engineering evidence, risks, and next action.
+See docs/DECISIONS.md, docs/M0_REPORT.md through docs/M6_REPORT.md and context.md for engineering evidence, risks, and next action.

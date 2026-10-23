@@ -9,4 +9,4 @@ function cubejsWorkerCompatibility():Plugin {
   return code.replace(before,"Cube = require('./cube');");
  }};
 }
-export default defineConfig({plugins:[cubejsWorkerCompatibility()],worker:{plugins:()=>[cubejsWorkerCompatibility()]}});
+export default defineConfig({base:'/Face54/',plugins:[cubejsWorkerCompatibility()],worker:{plugins:()=>[cubejsWorkerCompatibility()]}});

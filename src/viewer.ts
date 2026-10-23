@@ -2,11 +2,12 @@ import * as T from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {stickers,serialize,apply,faces,frames,dot,type Sticker,type V,type Face} from './cube';
 import {orientationPose} from './orientation';
-export const colors:Record<string,string>={U:'#ffffff',R:'#d52b1e',F:'#009b48',D:'#ffd500',L:'#ff5800',B:'#0046ad'};
+import {colors} from './colors';
+export {colors} from './colors';
 export function makeCube(state:string){
  const group=new T.Group();
  for(const s of stickers(state)){
-  const mesh=new T.Mesh(new T.PlaneGeometry(.9,.9),new T.MeshBasicMaterial({color:colors[s.color]}));
+  const mesh=new T.Mesh(new T.PlaneGeometry(.9,.9),new T.MeshBasicMaterial({color:colors[s.color as Face]}));
   mesh.position.set(...s.p.map((v,i)=>v+s.n[i]*.51) as V);
   mesh.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),new T.Vector3(...s.n));
   group.add(mesh);
@@ -28,7 +29,7 @@ export function readCube(group:T.Group){
   const n=new T.Vector3(0,0,1).applyQuaternion(mesh.getWorldQuaternion(new T.Quaternion()));
   const p=mesh.getWorldPosition(new T.Vector3());
   const rgb='#'+mesh.material.color.getHexString();
-  const color=Object.keys(colors).find(k=>colors[k]===rgb);
+  const color=faces.find(k=>colors[k]===rgb);
   if(!color) throw Error(`Unknown material ${rgb}`);
   return {color,n:n.toArray().map(Math.round) as V,p:p.toArray().map((v,i)=>Math.round(v-n.getComponent(i)*.51)) as V};
  });
@@ -48,7 +49,7 @@ export function layerPreview(group:T.Group,state:string,move:string,body?:T.Grou
   group.updateMatrixWorld(true);
  };
 }
-export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descriptionId?:string;interactive?:boolean}={}){
+export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descriptionId?:string;interactive?:boolean;onError?:()=>void}={}){
  const diagnostic=options.diagnostic??false;
  const interactive=options.interactive??true;
  const renderer=new T.WebGLRenderer({antialias:true,alpha:!diagnostic,preserveDrawingBuffer:diagnostic});
@@ -78,7 +79,10 @@ export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descri
  let previewTimer:ReturnType<typeof setTimeout>|undefined;
  let restorePreview:(()=>void)|undefined;
  function cancelPreview(){cancelAnimationFrame(animation);clearTimeout(previewTimer);restorePreview?.();restorePreview=undefined;}
- const render=()=>renderer.render(scene,camera);
+ let failed=false;
+ const render=()=>{if(!failed)renderer.render(scene,camera);};
+ const onContextLost=(event:Event)=>{event.preventDefault();failed=true;cancelPreview();options.onError?.();};
+ canvas.addEventListener('webglcontextlost',onContextLost);
  controls.addEventListener('change',render);
  const resize=()=>{
   const width=diagnostic?480:Math.max(host.clientWidth,1);
@@ -101,12 +105,14 @@ export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descri
  const disposeCube=()=>cube?.children.forEach(c=>{const m=c as T.Mesh<T.PlaneGeometry,T.MeshBasicMaterial>;m.geometry.dispose();m.material.dispose();});
  return {
   show(state:string){
+   if(failed)throw Error('Graphics context lost');
    cancelPreview();
    if(cube){scene.remove(cube);disposeCube();}
    cube=makeCube(state);scene.add(cube);renderer.render(scene,camera);
    const actual=readCube(cube);canvas.dataset.renderedState=actual;return actual;
   },
   preview(state:string,move:string,onSettled:(ok:boolean)=>void){
+   if(failed)throw Error('Graphics context lost');
    cancelPreview();
    if(!cube||readCube(cube)!==state)throw Error('Preview starting state mismatch');
    const rotate=layerPreview(cube,state,move,core),expected=apply(state,move);
@@ -148,6 +154,6 @@ export function mountViewer(host:HTMLElement,options:{diagnostic?:boolean;descri
    };
    animation=requestAnimationFrame(tick);
   },
-  dispose(){cancelPreview();observer.disconnect();canvas.removeEventListener('keydown',onKey);controls.dispose();disposeCube();const body=core.children[0] as T.Mesh<T.BoxGeometry,T.MeshBasicMaterial>;body.geometry.dispose();body.material.dispose();renderer.dispose();canvas.remove();},
+  dispose(){cancelPreview();observer.disconnect();canvas.removeEventListener('keydown',onKey);canvas.removeEventListener('webglcontextlost',onContextLost);controls.dispose();disposeCube();const body=core.children[0] as T.Mesh<T.BoxGeometry,T.MeshBasicMaterial>;body.geometry.dispose();body.material.dispose();renderer.dispose();canvas.remove();},
  };
 }

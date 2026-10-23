@@ -1,0 +1,2 @@
+# Keep vendored upstream bytes stable so integrity checks also pass on Windows.
+vendor/cubejs/** -text

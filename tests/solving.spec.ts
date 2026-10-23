@@ -38,7 +38,7 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
   await page.getByRole('group',{name:'Sticker color',exact:true}).getByRole('button',{name:'White',exact:true}).click();
   const grid=page.getByRole('group',{name:'Green Front face stickers',exact:true});
   // Pick a non-white editable slot so the stored revision actually changes.
-  const position=[...input.slice(18,27)].findIndex((v,i)=>i!==4&&v!=='U');
+  const position=Array.from(input.slice(18,27)).findIndex((v,i)=>i!==4&&v!=='U');
   await grid.getByRole('button',{name:new RegExp(`^Green row ${Math.floor(position/3)+1} column ${position%3+1}:`)}).click();
   expect(await snapshot(page)).not.toBe(before);
   await page.getByRole('link',{name:'Review cube',exact:true}).click();await expect(page.getByRole('heading',{name:'Your solution is ready.',exact:true})).toHaveCount(0);

@@ -1,0 +1,9 @@
+{
+  "name": "cubejs",
+  "version": "1.3.2",
+  "private": true,
+  "description": "Unmodified cubejs 1.3.2 runtime, repackaged without the unused npm CLI dependency",
+  "license": "MIT",
+  "main": "index.js",
+  "files": ["index.js", "lib/cube.js", "lib/solve.js", "LICENSE", "README.md", "SHA256.json"]
+}

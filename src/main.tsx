@@ -1,8 +1,7 @@
-import {useEffect,useRef,useState} from 'react';
+import {lazy,Suspense,useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {apply,solved,scramble,type Face} from './cube';
 import {CubeView} from './CubeView';
-import Proof from './Proof';
 import {InputEditor} from './InputEditor';
 import {useDraft} from './useDraft';
 import {Review} from './Review';
@@ -11,6 +10,7 @@ import {GuidedPlayback,type PlaybackSession} from './GuidedPlayback';
 import './styles.css';
 
 const initial=apply(solved,scramble);
+const Proof=lazy(()=>import('./Proof'));
 type Screen='welcome'|'prepare'|'demo'|'input'|'review'|'play';
 function currentScreen():Screen {
  return location.hash==='#play'?'play':location.hash==='#prepare'?'prepare':location.hash==='#demo'?'demo':location.hash==='#input'?'input':location.hash==='#review'?'review':'welcome';
@@ -29,7 +29,7 @@ function Welcome(){return <section className="hero" aria-labelledby="page-title"
  </section>;}
 
 function Prepare(){return <section className="hero prepare" aria-labelledby="page-title">
- <div className="hero-copy"><a className="back-link" href="#">← Back to welcome</a><p className="eyebrow">BEFORE THE FIRST TURN</p>
+ <div className="hero-copy"><a className="back-link" href="#welcome">← Back to welcome</a><p className="eyebrow">BEFORE THE FIRST TURN</p>
   <h1 id="page-title" tabIndex={-1}>Get to know<br/><em>your cube.</em></h1>
   <ol className="prepare-steps">
    <li><div><h2>Start with the centers</h2><p>Each center stays in place. Its color tells you which face you’re looking at.</p></div></li>
@@ -43,7 +43,7 @@ function Prepare(){return <section className="hero prepare" aria-labelledby="pag
 
 function Demo({onBegin}:{onBegin:(state:string,solution:string)=>void}){
  return <section className="hero demo" aria-labelledby="page-title">
-  <div className="hero-copy"><a className="back-link" href="#">← Back to welcome</a><p className="eyebrow">TRY ONE TURN AT A TIME</p>
+  <div className="hero-copy"><a className="back-link" href="#welcome">← Back to welcome</a><p className="eyebrow">TRY ONE TURN AT A TIME</p>
    <h1 id="page-title" tabIndex={-1}>A scrambled cube.<br/><em>A way through.</em></h1>
    <p className="intro">Try the complete guided journey with this example cube. Every turn stays under your control.</p>
    <SolvePanel state={initial} demo onBegin={onBegin}/>
@@ -72,9 +72,9 @@ function App(){
  },[screen]);
  return <div className="app-shell">
   <a href="#main" className="skip-link" onClick={e=>{e.preventDefault();document.getElementById('main')?.focus();}}>Skip to content</a>
-  <header className="site-header"><a href="#" className="wordmark" aria-label="Cube Solver home"><CubeMark/><span>Cube Solver<span className="wordmark-dot">.</span></span></a><span className="header-note">A little clarity, one turn at a time.</span></header>
+  <header className="site-header"><a href="#welcome" className="wordmark" aria-label="Cube Solver home"><CubeMark/><span>Cube Solver<span className="wordmark-dot">.</span></span></a><span className="header-note">A little clarity, one turn at a time.</span></header>
   <main id="main" tabIndex={-1}>{screen==='welcome'?<Welcome/>:screen==='prepare'?<Prepare/>:screen==='input'?<InputEditor draft={input.draft} setDraft={input.setDraft} notice={input.notice} onReset={input.reset} highlighted={highlighted?.indices} initialPosition={correctionPosition}/>:screen==='review'?<Review draft={input.draft} notice={input.notice} onEdit={editFace} onBegin={(state,solution)=>begin(state,solution)}/>:screen==='play'?(session?<GuidedPlayback session={session} onExit={leave} onNew={newCube}/>:<section className="input-screen"><h1 id="page-title" tabIndex={-1}>Recheck your current cube.</h1><p>Solution progress is not saved. If you turned your physical cube, re-enter its current colors before checking again.</p><a className="button primary" href="#input">Return to colors</a></section>):<Demo onBegin={(state,solution)=>begin(state,solution,true)}/>}</main>
   <footer className="site-footer"><span>Made for the cube in your hands.</span><span><span className="local-dot" aria-hidden="true"/> Solving stays on your device.</span></footer>
  </div>;
 }
-createRoot(document.getElementById('root')!).render(new URLSearchParams(location.search).get('proof')==='1'?<Proof/>:<App/>);
+createRoot(document.getElementById('root')!).render(new URLSearchParams(location.search).get('proof')==='1'?<Suspense fallback={<p role="status">Loading the technical proof…</p>}><Proof/></Suspense>:<App/>);

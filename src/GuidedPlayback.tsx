@@ -44,7 +44,7 @@ export function GuidedPlayback({session,onExit,onNew}:{session:PlaybackSession;o
     {step>0&&<div className="playback-undo"><button className="text-button" type="button" disabled={previewing||!verified} onClick={()=>action(undo?'cancelUndo':'requestUndo')}>{undo?'Keep current step':'Previous — undo a turn'}</button></div>}
     <p className="quiet-note playback-persistence">Progress is not saved. If you leave or refresh after moving your physical cube, re-enter its current colors before solving again.</p>
    </div>
-   <CubeView state={plan.states[step]} caption={complete?'Solved cube':undo?'Confirmed state · undo the previous turn':'Confirmed state · white up, green front'} preview={preview} onPreview={onPreview} onVerified={onVerified}/>
+   <CubeView state={plan.states[step]} caption={previewing?'Preview only · no move confirmed':complete?'Solved cube':undo?'Confirmed state · undo the previous turn':'Confirmed state · white up, green front'} preview={preview} onPreview={onPreview} onVerified={onVerified}/>
   </div>
   <dialog ref={dialog} className="reset-dialog" onCancel={e=>{e.preventDefault();setExit(false);}} aria-labelledby="leave-title">
    <h2 id="leave-title">Leave this solution?</h2><p>{session.demo?'Demo progress will be discarded.':'Your entered colors are kept, but progress is discarded. If you have turned your physical cube, re-enter its current colors before checking again.'}</p>

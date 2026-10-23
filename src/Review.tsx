@@ -2,7 +2,7 @@ import {useRef,useState} from 'react';
 import {faces,type Face} from './cube';
 import {colorCounts,type InputDraft} from './input';
 import {faceInfo} from './orientation';
-import {colors} from './viewer';
+import {colors} from './colors';
 import {validateCube,type ValidationResult} from './validation';
 import {SolvePanel} from './SolvePanel';
 

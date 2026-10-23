@@ -256,3 +256,4 @@ button:disabled { opacity: .5; cursor: default; }
 .undo-warning {font-size:14px;line-height:1.8;border-left:2px solid var(--accent);padding-left:15px;}
 .playback-persistence {margin-top:24px;}
 @media (max-width:760px){.playback-layout{grid-template-columns:1fr;gap:24px;}.playback-layout .cube-figure{grid-row:1;max-width:420px;}.playback-copy{max-width:none;}.playback-layout .cube-stage{max-height:300px;aspect-ratio:1.4;}.playback-copy .intro{margin:20px 0;}}
+.viewer-loading {position:absolute;inset:40% 20px auto;text-align:center;color:var(--muted);font-size:13px;}

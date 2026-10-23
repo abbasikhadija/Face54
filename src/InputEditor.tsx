@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type Dispatch,type SetStateAction} from 'react';
 import {faces,type Face} from './cube';
-import {colors} from './viewer';
+import {colors} from './colors';
 import {entryFaces,faceInfo,faceletIndex} from './orientation';
 import {clearFace,colorCounts,faceProgress,firstEmpty,hasEntries,paintSticker,type InputDraft} from './input';
 import {OrientationGuide} from './OrientationGuide';

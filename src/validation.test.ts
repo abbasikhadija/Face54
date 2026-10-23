@@ -11,7 +11,7 @@ function expectCode(input:unknown,code:ValidationCode){const result=validateCube
 describe('Independent physical validation',()=>{
  it('accepts the solved cube and decodes all piece identities',()=>{
   const result=validateCube([...solved]);expect(result.ok).toBe(true);
-  if(result.ok){expect(result.state).toBe(solved);const {center,...cubies}=new Cube().toJSON();expect(result.cubies).toEqual(cubies);}
+  if(result.ok){expect(result.state).toBe(solved);const {center:_center,...cubies}=new Cube().toJSON();expect(result.cubies).toEqual(cubies);}
  });
  it('covers every non-center sticker exactly once in its physical piece',()=>{
   const indices=[...edgeSlots.flat(),...cornerSlots.flat()].sort((a,b)=>a-b);
@@ -92,7 +92,7 @@ describe('Independent physical validation',()=>{
    const alg=i===0?scramble:Array.from({length:25},()=>faces[(random()>>>8)%6]+['',"'",'2'][(random()>>>8)%3]).join(' ');
    const cube=new Cube().move(alg),state=cube.asString();
    const start=performance.now(),result=validateCube([...state]);elapsed+=performance.now()-start;
-   expect(result.ok,JSON.stringify({i,alg,result,cubies:cube.toJSON()})).toBe(true);if(result.ok){const {center,...cubies}=cube.toJSON();expect(result.cubies).toEqual(cubies);}
+   expect(result.ok,JSON.stringify({i,alg,result,cubies:cube.toJSON()})).toBe(true);if(result.ok){const {center:_center,...cubies}=cube.toJSON();expect(result.cubies).toEqual(cubies);}
    // Adjacent grid cells can legally contain opposite colors. No grid-adjacency rule.
    for(let f=0;f<6;f++)for(let p=0;p<8;p++)if(p%3!==2&&['UD','DU'].includes(state[f*9+p]+state[f*9+p+1]))whiteYellowNeighbors=true;
   }

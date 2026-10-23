@@ -1,0 +1,6 @@
+{
+  "plugins": ["typescript", "unicorn", "oxc", "jsx-a11y"],
+  "categories": {"correctness": "error"},
+  "rules": {"react/rules-of-hooks": "error", "jsx-a11y/prefer-tag-over-role": "off"},
+  "ignorePatterns": ["vendor/**", "dist/**", "node_modules/**", "test-results/**"]
+}
