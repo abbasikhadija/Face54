@@ -2,35 +2,36 @@
 
 ## Current milestone
 
-M2 — Cube Input and Orientation COMPLETE for automated acceptance (2026-10-23). M0/M1 remain complete. Physical orientation confirmation is pending and must not be inferred from virtual tests. STOPPED after M2; await review and authorization before M3. No commit, push or deployment performed.
+M3 — Review and Physical Validation COMPLETE for automated acceptance (2026-10-23). M0, M1 and M2 remain complete. Physical cube acceptance remains pending and must not be inferred from virtual tests. STOPPED after M3; await user review before M4. No commit, push or deployment performed.
 
 ## What was built
 
-- M2 partial canonical input uses 54 URFDLB slots with 48 initially empty editable positions and six fixed centers. Entry order F/R/B/L/U/D. Input is separate from complete solver states.
-- Six-face editor: labeled palette, smart next-empty selection, active/focus tracking, correction, keyboard arrows/Enter/Space, per-face clear, incomplete navigation, live counts and excess-color warnings. No auto-paint or auto-face advance.
-- First-entry orientation guides animate only the camera, verify actual reference mesh readback, shrink after orienting, support reduced motion, hide/reopen, named landmarks and a text fallback without WebGL2. New-face focus brings guidance into view on mobile. No layer turns occur.
-- Minimal versioned local persistence validates all saved slots/centers before restoring; preserves edits and current face across navigation/refresh; handles invalid, blocked and quota-failing storage; resets only after confirmation when work exists. Draft lives at app scope; transient UI state is not persisted.
-- Preparation now links to #input. Existing graphite welcome, real fixed demo and `?proof=1` diagnostics remain. The unchanged demo worker is independent of entered colors. No entered input is solved or declared physically valid, even when all slots are filled.
-- No dependencies added. New pure modules: input.ts, orientation.ts, persistence.ts; React integration: useDraft.ts, InputEditor.tsx, OrientationGuide.tsx. Existing solver/worker unchanged; cube.ts only exports the shared Face type.
+- Existing M0 solver/renderer proof, M1 graphite welcome and fixed demo, and M2 six-face input/orientation/persistence remain intact. Canonical state is URFDLB; entry order F/R/B/L/U/D; centers fixed; version-1 face54.draft preserves partial input and current face.
+- M3 adds a compact outside-view U / L F R B / D review net, accessible sticker labels/color initials, completion and counts, per-face Edit, and Check cube.
+- Pure validation.ts checks shape/known colors, completeness, fixed centers, counts, strict edge/cyclic corner identities, uniqueness, edge flips, corner twists and matching permutation parity. It does not depend on rendering or solving, mutate data or attempt repair. Structured failures include unsupported scheme and internal errors.
+- Review shows evidence-supported candidate groups and correction navigation without erasing colors. Global orientation/parity failures never guess a wrong sticker. Excess-count candidates exclude fixed centers. Checked results and marks are transient and tied to the exact facelet snapshot; edits clear stale evidence.
+- A successful check confirms physical possibility only. Entered-state solving is unavailable until M4; review never initializes a worker. Existing demo remains independent of input.
+- New modules: validation.ts, Review.tsx; new tests: validation.test.ts and tests/review.spec.ts. Editor/main/styles integrate review. cubejs.d.ts adds its existing public toJSON API typing for test comparisons. No dependencies or persistence schema changed.
 
 ## Verification
 
-- `npm test`: 43 passed (last run 26.78 s), including 103 legal solve cases, all 18 moves, every entry slot, all six orientation poses, corner adjacency, smart selection, centers/clear/corrections and defensive persistence.
-- `npm run build`: TypeScript + Vite passed. Last build 651 ms; JS 792.15 kB (212.62 kB gzip), CSS 13.05 kB (3.47 kB gzip), worker unchanged 19.54 kB. Existing size warning remains.
-- `npm run test:browser`: final combined suite 34 passed (1.7 min), Chrome 155.0.8059.85 and Edge 155.0.4283.62 against production `/Face54/`. Includes M0/M1 regressions and 20 M2 browser checks: all 48 fixture entries reproduce exact facelets; all guides preserve all 54 stickers; corrections, refresh, counts, modal cancellation, keyboard, native emulated touch painting, malformed/blocked/quota storage, and no-WebGL editing/text fallback. No worker starts during entry.
-- Two inherited timing-sensitive tests were stabilized: wait for React before Tab; verify native touch reset before raw CDP drag injection, then raw drag plus keyboard reset. Post-raw-drag compatibility clicks were unreliable in the driver; no app gesture workaround or retries were added. Twelve repeated focused checks passed before the final suite. Real-hardware drag-then-tap remains pending.
-- Desktop/mobile entry and orientation screenshots inspected; selected captures saved as docs/screenshots/m2-input-desktop.png and m2-input-mobile.png. Full captures regenerate in ignored test-results/.
-- Sticker text contrast is at least 5.01:1; empty-slot boundaries are 3.22:1. Semantic/keyboard checks performed; no full screen-reader audit claimed.
-- Scoped `git diff --check -- .` passes.
+- Final unit suite: 64 passed, three files, 27.05 s. Includes inherited 103 legal solve cases and new 1,000 seeded legal states with exact upstream cubie comparisons, all isolated flips/twists/pair swaps, balanced-count impossible pieces, duplicate/missing identities, mirror corners, geometry/table coverage, malformed input and exception handling.
+- Installed cubejs parsing and facelet round-trips accept isolated flip/twist/parity failures. Tests prove this; parsing is not validation.
+- Final production build: TypeScript and Vite passed, 926 ms. JS 801.13 kB / 215.31 kB gzip; CSS 15.81 kB / 3.99 kB gzip; worker unchanged 19.54 kB. Existing >500 kB warning remains.
+- Final combined browser suite: 58 passed in 2.2 min, Chrome 155.0.8059.85 and Edge 155.0.4283.62, production /Face54/ path. New review coverage: 24 checks across desktop/mobile, exact 54-slot net, legal and impossible states, honest highlight scope, preserved storage, correction loops, stale-result clearing, keyboard/native emulated touch and no workers. All 34 previous browser checks pass.
+- Validation-only local timing: 1,000 legal validations took 144.85 ms, mean 0.145 ms, concurrent with browser checks. Observation only; excludes renderer/solver/assertions.
+- Desktop/mobile valid review and global parity-error screenshots inspected; selected captures saved under docs/screenshots/m3-review-*.png. Full captures regenerate in ignored test-results/.
+- See docs/M3_REPORT.md and docs/DECISIONS.md for implementation details, primary references and engineering rationale.
+- Scoped `git diff --check -- .` passed.
 
 ## Engineering boundaries and known issues
 
-No review net/full physical validator (M3), entered-state solving/complete typed worker request/cancellation/retry protocol (M4), or guided physical move confirmation (M5) implemented. Fully filled input is explicitly unchecked. Input changes cannot alter the fixed example demo; M4 must associate real solutions with the input revision. Cross-tab concurrent draft arbitration is not implemented.
+No new automated M3 blockers. Physical cube orientation/entry/solving acceptance remains pending. The validator proves possibility of entered colors, not correspondence to the user's physical cube. M4 production solving, request IDs/input-revision binding, cancellation/retry and failure recovery are not implemented; M5 guided physical moves is not started.
 
-Existing risks remain: cubejs's legacy npm tree has 42 findings in the M0 audit snapshot (3 critical); its guarded bundler patch requires upgrade verification; WebGL2 is required; bundle is large and cold solver initialization takes seconds. No fresh audit was needed because dependencies did not change. Firefox/Safari, real mobile hardware, assistive-technology audit, and physical cube acceptance remain pending. Virtual and emulated-touch evidence must never be called physical acceptance.
+Existing risks remain: cubejs legacy npm tree had 42 findings (3 critical) in the M0 audit snapshot; its guarded build patch needs upgrade verification; WebGL2 is required for 3D; the bundle is large and cold solver initialization takes seconds. Dependencies did not change; no fresh audit claimed. Firefox/Safari, real mobile hardware, full assistive-technology audit and physical trials remain pending. Cross-tab draft arbitration remains unsupported. Prior raw-CDP drag compatibility-click limitations remain recorded in docs/M2_REPORT.md; virtual/emulated touch is not physical acceptance.
 
-Git's earlier root warning is C:/Users/User, not a dedicated Face54 repository; keep inspections and any future staging scoped and establish the intended repository before deployment. No repository restructuring was performed. PROJECT_SPEC.md, AGENTS.md, solver and worker modules remain unchanged in M2. Facelet conventions were checked against upstream cubejs's documented net, independent geometry and camera projections; real physical confirmation is still required before product acceptance.
+Git root was detected as C:/Users/User rather than a dedicated Face54 repository. Keep inspection/staging scoped; establish intended repository before deployment. No restructuring performed. AGENTS.md, PROJECT_SPEC.md, canonical transformations, solver/worker and renderer unchanged in M3.
 
 ## Next action
 
-Await the user's review. Next unfinished development milestone is M3 — Review and Physical Validation: compact net, full physical solvability checks, structured plain-English errors and correction navigation. Read PROJECT_SPEC.md, AGENTS.md, this file, docs/DECISIONS.md and docs/M2_REPORT.md, inspect scoped Git status, then implement only the newly authorized milestone. Keep real-cube orientation/solving acceptance explicitly pending until actual trials occur.
+Await user review. Next unfinished milestone is M4 — Production Solving Pipeline: validated real input to typed worker requests, request IDs/stale-result protection tied to input revisions, cancellation/retry, recovery and independent verification of returned solutions. Read project instructions/spec/context/decisions and M3 report, inspect scoped status, then implement only the next authorized milestone. Do not repeat M3 or start M5. Real physical acceptance must remain explicit until actual trials occur.

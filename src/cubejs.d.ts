@@ -6,5 +6,6 @@ declare module 'cubejs' {
   asString():string;
   solve():string;
   isSolved():boolean;
+  toJSON():{center:number[];cp:number[];co:number[];ep:number[];eo:number[]};
  }
 }

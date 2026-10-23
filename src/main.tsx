@@ -1,16 +1,17 @@
 import {useEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {apply,solved,scramble} from './cube';
+import {apply,solved,scramble,type Face} from './cube';
 import {CubeView} from './CubeView';
 import Proof from './Proof';
 import {InputEditor} from './InputEditor';
 import {useDraft} from './useDraft';
+import {Review} from './Review';
 import './styles.css';
 
 const initial=apply(solved,scramble);
-type Screen='welcome'|'prepare'|'demo'|'input';
+type Screen='welcome'|'prepare'|'demo'|'input'|'review';
 function currentScreen():Screen {
- return location.hash==='#prepare'?'prepare':location.hash==='#demo'?'demo':location.hash==='#input'?'input':'welcome';
+ return location.hash==='#prepare'?'prepare':location.hash==='#demo'?'demo':location.hash==='#input'?'input':location.hash==='#review'?'review':'welcome';
 }
 function CubeMark(){return <svg viewBox="0 0 28 30" fill="none" aria-hidden="true"><path d="m14 2 12 7v13l-12 7-12-7V9L14 2Z M2 9l12 7 12-7M14 16v13M8 5.5l12 7v13M20 5.5l-12 7v13M2 15.5l12 7 12-7" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/></svg>;}
 function Arrow(){return <span aria-hidden="true">↗</span>;}
@@ -75,17 +76,23 @@ function Demo(){
 function App(){
  const [screen,setScreen]=useState<Screen>(currentScreen);
  const input=useDraft();
+ const [correction,setCorrection]=useState<{face:Face;indices:number[];key:string}|null>(null);
+ const highlighted=correction?.key===JSON.stringify(input.draft.facelets)?correction:null;
+ const correctionPosition=highlighted?.face===input.draft.face&&highlighted.indices.length>0?highlighted.indices[0]%9:undefined;
+ function editFace(face:Face,indices:number[]){
+  input.setDraft({...input.draft,face});setCorrection({face,indices,key:JSON.stringify(input.draft.facelets)});location.hash='#input';
+ }
  const firstRender=useRef(true);
  useEffect(()=>{const navigate=()=>setScreen(currentScreen());window.addEventListener('hashchange',navigate);return ()=>window.removeEventListener('hashchange',navigate);},[]);
  useEffect(()=>{
-  document.title=screen==='welcome'?'Cube Solver — One turn at a time':`${screen==='prepare'?'Prepare your cube':screen==='input'?'Enter cube colors':'Try the demo'} — Cube Solver`;
+  document.title=screen==='welcome'?'Cube Solver — One turn at a time':`${screen==='prepare'?'Prepare your cube':screen==='input'?'Enter cube colors':screen==='review'?'Review your cube':'Try the demo'} — Cube Solver`;
   if(!firstRender.current||location.hash)document.getElementById('page-title')?.focus();
   firstRender.current=false;
  },[screen]);
  return <div className="app-shell">
   <a href="#main" className="skip-link" onClick={e=>{e.preventDefault();document.getElementById('main')?.focus();}}>Skip to content</a>
   <header className="site-header"><a href="#" className="wordmark" aria-label="Cube Solver home"><CubeMark/><span>Cube Solver<span className="wordmark-dot">.</span></span></a><span className="header-note">A little clarity, one turn at a time.</span></header>
-  <main id="main" tabIndex={-1}>{screen==='welcome'?<Welcome/>:screen==='prepare'?<Prepare/>:screen==='input'?<InputEditor draft={input.draft} setDraft={input.setDraft} notice={input.notice} onReset={input.reset}/>:<Demo/>}</main>
+  <main id="main" tabIndex={-1}>{screen==='welcome'?<Welcome/>:screen==='prepare'?<Prepare/>:screen==='input'?<InputEditor draft={input.draft} setDraft={input.setDraft} notice={input.notice} onReset={input.reset} highlighted={highlighted?.indices} initialPosition={correctionPosition}/>:screen==='review'?<Review draft={input.draft} notice={input.notice} onEdit={editFace}/>:<Demo/>}</main>
   <footer className="site-footer"><span>Made for the cube in your hands.</span><span><span className="local-dot" aria-hidden="true"/> Solving stays on your device.</span></footer>
  </div>;
 }

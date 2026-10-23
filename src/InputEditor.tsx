@@ -5,10 +5,10 @@ import {entryFaces,faceInfo,faceletIndex} from './orientation';
 import {clearFace,colorCounts,faceProgress,firstEmpty,hasEntries,paintSticker,type InputDraft} from './input';
 import {OrientationGuide} from './OrientationGuide';
 
-type Props={draft:InputDraft;setDraft:Dispatch<SetStateAction<InputDraft>>;notice:string;onReset:()=>void};
-export function InputEditor({draft,setDraft,notice,onReset}:Props){
+type Props={draft:InputDraft;setDraft:Dispatch<SetStateAction<InputDraft>>;notice:string;onReset:()=>void;highlighted?:number[];initialPosition?:number};
+export function InputEditor({draft,setDraft,notice,onReset,highlighted=[],initialPosition}:Props){
  const [color,setColor]=useState<Face|null>(null);
- const [active,setActive]=useState(()=>firstEmpty(draft,draft.face));
+ const [active,setActive]=useState(()=>Number.isInteger(initialPosition)?initialPosition!:firstEmpty(draft,draft.face));
  const [guide,setGuide]=useState(true);
  const visited=useRef(new Set<Face>([draft.face]));
  const [confirm,setConfirm]=useState(false);
@@ -59,7 +59,7 @@ export function InputEditor({draft,setDraft,notice,onReset}:Props){
  return <section className="input-screen" aria-labelledby="page-title">
   <div className="input-top"><div><a className="back-link" href="#prepare"><span aria-hidden="true">←</span> Preparation</a><p className="eyebrow">YOUR CUBE, ONE FACE AT A TIME</p>
    <h1 id="page-title" tabIndex={-1}>Copy the colors.<br/><em>Keep every layer in place.</em></h1></div>
-   <button className="text-button" type="button" onClick={()=>hasEntries(draft)?setConfirm(true):reset()}>Start new cube</button>
+   <div className="actions"><a className="button secondary" href="#review">Review cube <span aria-hidden="true">→</span></a><button className="text-button" type="button" onClick={()=>hasEntries(draft)?setConfirm(true):reset()}>Start new cube</button></div>
   </div>
   <nav className="face-navigation" aria-label="Cube faces">
    {entryFaces.map((f,i)=><button type="button" key={f} aria-current={face===f?'step':undefined} onClick={()=>changeFace(f)}>
@@ -71,6 +71,7 @@ export function InputEditor({draft,setDraft,notice,onReset}:Props){
    <div className="entry-panel">
     <div className="face-heading"><div><p className="eyebrow">FACE {index+1} OF 6 · {faceProgress(draft,face)}/9 STICKERS</p><h2 ref={heading} tabIndex={-1}>{info.color} / {info.name}</h2></div><button className="text-button" type="button" onClick={()=>showGuide(!guide)}>{guide?'Hide orientation':'Show orientation'}</button></div>
     <p id="face-landmarks" className="landmark-text">{faceInfo[info.above].color} above · {faceInfo[info.right].color} to your right</p>
+    {highlighted.length>0&&<p className="correction-note" id="correction-help">Marked positions are entries to recheck as a group, not a diagnosis of which sticker is wrong. Editing clears the old check.</p>}
     <p id="painting-help" className="entry-help">{color?<>Selected: <strong>{faceInfo[color].color}</strong>. Paint a sticker; the next empty spot will be selected.</>:'Choose a color, then paint a sticker. The center is fixed.'}</p>
     <fieldset className="color-palette"><legend>Sticker color</legend>{faces.map(f=><button key={f} type="button" aria-pressed={color===f} onClick={()=>{setColor(f);setAnnouncement(`${faceInfo[f].color} selected. No sticker changed.`);}}><span className="palette-swatch" aria-hidden="true" style={{background:colors[f]}}/><span>{faceInfo[f].color}</span></button>)}</fieldset>
     <div className="face-editor" role="group" aria-label={`${info.color} ${info.name} face stickers`} aria-describedby="face-landmarks painting-help">
@@ -78,7 +79,8 @@ export function InputEditor({draft,setDraft,notice,onReset}:Props){
       const row=Math.floor(position/3),column=position%3;
       const value=draft.facelets[faceletIndex(face,row,column)];
       const center=position===4;
-      return <button key={`${face}-${position}`} type="button" ref={el=>{buttons.current[position]=el;}} disabled={center} className={`sticker ${active===position?'active':''} ${value?'filled':'empty'}`} style={value?{background:colors[value],color:['U','D','L','F'].includes(value)?'#10151c':'#ffffff'}:{}}
+      const marked=highlighted.includes(faceletIndex(face,row,column));
+      return <button key={`${face}-${position}`} type="button" ref={el=>{buttons.current[position]=el;}} disabled={center} data-review-highlighted={marked||undefined} aria-describedby={marked?'correction-help':undefined} className={`sticker ${active===position?'active':''} ${value?'filled':'empty'} ${marked?'review-highlight':''}`} style={value?{background:colors[value],color:['U','D','L','F'].includes(value)?'#10151c':'#ffffff'}:{}}
        aria-label={`${info.color} row ${row+1} column ${column+1}: ${value?faceInfo[value].color:'empty'}${center?', fixed center':''}`}
        aria-pressed={center?undefined:active===position} onFocus={()=>setActive(position)} onClick={()=>paint(position)} onKeyDown={event=>{if(event.key.startsWith('Arrow')){event.preventDefault();selectNeighbor(position,event.key);}}}>
        <span>{center?'Center':value?faceInfo[value].color:'+'}</span>
@@ -95,7 +97,7 @@ export function InputEditor({draft,setDraft,notice,onReset}:Props){
   <section className="entry-counts" aria-label="Sticker counts"><div className="counts-heading"><h2>Colors on your cube</h2><p>{filled}/54 filled · {54-filled} empty</p></div>
    <ul>{faces.map(f=><li key={f} className={counts[f]>9?'excess':''}><span className="face-dot" style={{background:colors[f]}} aria-hidden="true"/><span>{faceInfo[f].color}</span><strong>{counts[f]}<span>/9</span></strong></li>)}</ul>
    {excess.length>0&&<p className="count-warning" role="alert">{excess.map(f=>`${faceInfo[f].color} has ${counts[f]} stickers`).join('; ')}. A standard cube has nine of each color. You can correct these entries.</p>}
-   {filled===54&&<p className="scope-note" role="status">Every sticker has a color. Physical correctness has not been checked. Cube review and checking are not available yet.</p>}
+   {filled===54&&<p className="scope-note" role="status">Every sticker has a color. Physical correctness has not been checked. Open review to check your cube.</p>}
   </section>
   <dialog ref={dialog} className="reset-dialog" aria-labelledby="reset-title" aria-describedby="reset-description" onCancel={()=>setConfirm(false)} onClose={()=>setConfirm(false)}>
    <h2 id="reset-title">Start a new cube?</h2><p id="reset-description">This clears all entered colors, including the saved draft on this device. The six centers will stay fixed.</p><div className="actions"><button className="button secondary" type="button" autoFocus onClick={()=>setConfirm(false)}>Keep editing</button><button className="button primary" type="button" onClick={reset}>Start new cube</button></div>
