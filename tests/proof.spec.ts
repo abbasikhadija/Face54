@@ -3,7 +3,7 @@ import {apply,solved,scramble} from '../src/cube';
 test('production worker + WebGL + every solution step under subpath',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  console.log('Browser',await page.context().browser()?.version());
- await page.goto('http://127.0.0.1:4173/Face54/');
+ await page.goto('http://127.0.0.1:4173/Face54/?proof=1');
  await expect(page.getByRole('heading')).toHaveText('M0 — Technical feasibility');
  await expect(page.getByRole('status')).toHaveText('Solver / mesh agreement verified',{timeout:90000});
  await expect(page.getByTestId('solution')).not.toBeEmpty();
