@@ -1,5 +1,17 @@
 # Engineering decisions
 
+## M4 — Production solving pipeline (2026-10-23)
+
+**Problem:** M3 validated input but stopped before computing a solution. The original one-shot worker had no request identity, runtime protocol checks, cancellation/retry or protection against a returned solution belonging to another input.
+
+**Choice:** Keep cubejs and the independent geometric move implementation. Split preparation/search in the adapter, and add small ordinary modules for the typed protocol/handler and main-thread request lifecycle. A solve request carries a positive unique ID and canonical state. Progress distinguishes preparation/search; results carry ID, original state, moves and measured times; errors use bounded codes. Validate input on both sides. Reject malformed messages, invalid physical input, wrong snapshots, invalid timings and unsupported/incorrect moves. Independently apply returned moves in the worker and again before main-thread publication. Parsing alone remains insufficient. Already-solved input returns zero moves/times without table initialization.
+
+**Lifecycle:** One active request per client. Capture the exact request object and ID so replaced, cancelled or disposed callbacks cannot publish. Unmount on edit/navigation; do not persist solutions. Every worker is terminated after success, failure, cancellation, disposal or a 60-second watchdog timeout. Retry creates a new worker. Alternative: retain a warm shared worker and multiplex consumers. Rejected for this small flow because it adds lifecycle/state complexity and retains large tables. Accepted cost: cold retries/rechecks initialize again. Synchronous cubejs cannot process a cancel message during work, so termination is the actual cancellation mechanism.
+
+**UI/boundary:** Successful Check cube starts local solving automatically. Show preparation/search status, Cancel, recoverable errors/Try again, verified move count or already-solved confirmation. Keep colors unchanged throughout. Focus terminal status headings; retain face correction controls. M5 physical turn guidance is not implemented, and no preview/turn is recorded. Both existing demo and M0 proof now use the same typed client without changing their existing exploration/mesh behavior; retaining an untyped legacy worker path was considered and removed to keep one trust boundary.
+
+**Verification:** New handler tests execute 103 deterministic actual solver cases. Injectable transport tests cover creation/post/decode errors, initialization/search/verification failures, malformed output, stale IDs/captured callbacks, replacement/cancellation/disposal, watchdog cleanup and retry. Production browser tests observe real worker requests/results and independently apply returned moves; verify complete UI entry, desktop/mobile, solved fast path, responsive cancellation, navigation/edit invalidation, malformed/impossible requests, recovery and rejected wrong output. Fault-injected output tests are distinguished from real solver runs. Final counts/timings and unchanged release risks are in M4_REPORT.md. No dependencies added; physical cube trials remain pending.
+
 ## M0 — Solver and renderer integration (2026-10-23)
 
 **Problem:** A solver and a visually plausible cube can disagree about face order, mirroring, or move direction.

@@ -239,3 +239,5 @@ button:disabled { opacity: .5; cursor: default; }
  .review-screen .entry-counts ul { grid-template-columns: repeat(2,minmax(0,1fr)); }
  .validation-summary { padding: 20px; }
 }
+.solve-panel {margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);}
+.solve-panel h2:focus {outline:2px solid var(--accent);outline-offset:5px;}

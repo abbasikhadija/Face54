@@ -6,6 +6,7 @@ import Proof from './Proof';
 import {InputEditor} from './InputEditor';
 import {useDraft} from './useDraft';
 import {Review} from './Review';
+import {createSolverClient} from './solverClient';
 import './styles.css';
 
 const initial=apply(solved,scramble);
@@ -44,14 +45,12 @@ function Demo(){
  const [error,setError]=useState(false);
  const [step,setStep]=useState(0);
  useEffect(()=>{
-  let worker:Worker|undefined;
-  try{
-   worker=new Worker(new URL('./solver.worker.ts',import.meta.url),{type:'module'});
-   worker.onmessage=({data})=>{if(data.ok)setResult(data);else setError(true);};
-   worker.onerror=()=>setError(true);
-   worker.postMessage({state:initial});
-  }catch{setError(true);}
-  return ()=>worker?.terminate();
+  const client=createSolverClient(status=>{
+   if(status.phase==='ready')setResult(status);
+   else if(status.phase==='error')setError(true);
+  });
+  client.start(initial);
+  return ()=>client.dispose();
  },[]);
  const moves=result?.solution.split(/\s+/).filter(Boolean)??[];
  const state=apply(initial,moves.slice(0,step).join(' '));

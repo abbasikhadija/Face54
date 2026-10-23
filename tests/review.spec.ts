@@ -17,7 +17,7 @@ async function paint(page:Page,face:Face,r:number,c:number,color:Face){
 }
 
 for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',width:390,height:844}]){
- test(`${viewport.name}: review exact net and validate legal scramble without starting a solver`,async({page},info)=>{
+ test(`${viewport.name}: review exact net and start local solving only after validation`,async({page},info)=>{
   await page.setViewportSize(viewport);
   const state=new Cube().move(scramble).asString();await seed(page,state);
   const workers:string[]=[];page.on('worker',w=>workers.push(w.url()));
@@ -28,9 +28,12 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
    const tile=page.locator(`[data-facelet="${i}"]`);await expect(tile).toHaveAccessibleName(`${faceInfo[faces[Math.floor(i/9)]].name} row ${Math.floor(i%9/3)+1} column ${i%3+1}: ${faceInfo[state[i] as Face].color}`);
   }
   await expect(page.getByText('54/54 stickers filled · 0 empty',{exact:true})).toBeVisible();
+  expect(workers).toHaveLength(0);
   const before=await snapshot(page);await page.getByRole('button',{name:'Check cube',exact:true}).click();
   await expect(page.getByRole('status').filter({hasText:'physically possible'})).toBeVisible();
-  await expect(page.locator('.validation-summary')).toBeFocused();expect(await snapshot(page)).toBe(before);expect(workers).toHaveLength(0);
+  expect(await snapshot(page)).toBe(before);
+  await expect(page.getByRole('heading',{name:'Your solution is ready.',exact:true})).toBeVisible({timeout:90000});expect(workers).toHaveLength(1);
+  await expect(page.getByRole('heading',{name:'Your solution is ready.',exact:true})).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:`test-results/${info.project.name}-${viewport.name}-review-valid.png`,fullPage:true});
   expect(errors).toEqual([]);

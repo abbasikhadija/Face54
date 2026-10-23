@@ -54,7 +54,7 @@ for(const viewport of [{name:'desktop',width:1440,height:1000},{name:'mobile',wi
  });
 }
 
-test('all 48 editable slots reproduce the legal M0 fixture exactly, without solving it',async({page})=>{
+test('all 48 editable slots reproduce the fixture exactly and continue to verified solving',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});
  const state=new Cube().move(scramble).asString();
  const workers:string[]=[];page.on('worker',w=>workers.push(w.url()));
@@ -76,6 +76,11 @@ test('all 48 editable slots reproduce the legal M0 fixture exactly, without solv
  expect(workers).toHaveLength(0);
  await page.reload();
  await expect(page.getByRole('region',{name:'Sticker counts'})).toContainText('54/54 filled');
+ await expect.poll(async()=> (await stored(page))?.facelets.join('')).toBe(state);
+ await page.getByRole('link',{name:'Review cube',exact:true}).click();
+ await page.getByRole('button',{name:'Check cube',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Your solution is ready.',exact:true})).toBeVisible({timeout:90000});
+ expect(workers).toHaveLength(1);
  await expect.poll(async()=> (await stored(page))?.facelets.join('')).toBe(state);
 });
 

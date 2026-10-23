@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {apply,solved,scramble} from './cube';
 import {mountViewer} from './viewer';
+import {createSolverClient} from './solverClient';
 const initial=apply(solved,scramble);
 export default function Proof(){
  const host=useRef<HTMLDivElement>(null);
@@ -11,11 +12,12 @@ export default function Proof(){
  const state=apply(initial,moves.slice(0,step).join(' '));
  useEffect(()=>{
   try{viewer.current=mountViewer(host.current!,{diagnostic:true});}catch(e){setError(String(e));}
-  const worker=new Worker(new URL('./solver.worker.ts',import.meta.url),{type:'module'});
-  worker.onmessage=({data})=>data.ok?setResult(data):setError(data.error);
-  worker.onerror=e=>setError(e.message);
-  worker.postMessage({state:initial});
-  return ()=>{worker.terminate();viewer.current?.dispose();};
+  const client=createSolverClient(status=>{
+   if(status.phase==='ready')setResult(status);
+   else if(status.phase==='error')setError(`Solver failed: ${status.code}`);
+  });
+  client.start(initial);
+  return ()=>{client.dispose();viewer.current?.dispose();};
  },[]);
  useEffect(()=>{if(viewer.current)setVisual(viewer.current.show(state));},[state]);
  return <main className="proof"><h1>M0 — Technical feasibility</h1><p>White U · red R · green F · yellow D · orange L · blue B</p>

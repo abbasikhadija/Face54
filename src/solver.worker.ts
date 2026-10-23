@@ -1,5 +1,5 @@
-import {solve} from './solver';
-self.onmessage=({data}:{data:{state:string}})=>{
- try {self.postMessage({ok:true,...solve(data.state)});}
- catch(e){self.postMessage({ok:false,error:String(e)});}
+import {prepare,compute} from './solver';
+import {handleSolve} from './solverProtocol';
+self.onmessage=({data})=>{
+ handleSolve(data,message=>self.postMessage(message),{prepare,compute});
 };
